@@ -1,0 +1,505 @@
+= Minting tokens on Windows using cardano-cli
+:author: Jack O'Brien
+:imagesdir: images
+:source-highlighter: highlight.js
+:highlightjs-theme: ocean
+:icons: font
+:toc:
+:experimental:
+
+:url-daedalus: https://daedaluswallet.io/
+:url-daedalus-tn: https://developers.cardano.org/en/testnets/cardano/get-started/wallet/
+:url-vscode:   https://code.visualstudio.com/
+:url-faucet:   https://developers.cardano.org/en/testnets/cardano/tools/faucet/
+:url-playlist: https://www.youtube.com/playlist?list=PLKl4dqDtindkquPR7EVknxtBPCtdM1vDr
+:url-cardanoConfig: https://hydra.iohk.io/build/5822084/download/1/index.html
+
+== Introduction
+The aim of these tutorial notes are to demostrate how to mint tokens on Cardano using the commandline 
+tool `cardano-cli` on Microsoft Windows. The notes are a companion for a series of {url-playlist}[tutorial videos]. Everything 
+is done on a Cardano *Testnet* so you don't need to buy Ada or spend Ada to complete the steps. 
+Everything shown works on the Cardano Mainnet too. You will need to make a few changes to the commandline options.
+
+The tutorial shows how to take advantage of Cardano's native asset support. **Tokens** are the accounting units 
+of **Assets** in Cardano. They are equivalent to ERC20 or ERC721 tokens on Ethereum. 
+
+We'll be using the **Cardano Node** that is installed with {url-daedalus}[Daedalus], the full-node wallet for Cardano. {url-daedalus}[Daedalus] works on Microsoft Windows, Apple Mac OSX, and Linux. 
+
+This tutorial is for Microsoft Windows, and there is a companion tutorial for https://github.com/atMetaphor/Metaphor-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-OSX.adoc[Apple Mac OSX]. 
+
+To make the tutorials consistent across platforms I'll be using Microsoft Visual Studio ( {url-vscode}[VSCode] ). By opening this file in VSCode, or https://github.com/atMetaphor/Metaphor-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-WIN.adoc[in your browser] you can copy/paste and change the parameters around directly within {url-vscode}[VSCode]. I'll be using VSCode in future tutorials so this is a way to introduce things. This does however mean you'll need to install {url-vscode}[VSCode].
+
+If you don't want to do that, you will still be able to follow along easily enough using just a terminal window.
+
+=== Videos
+This document is a companion for a series of short {url-playlist}[tutorial videos].
+
+== Getting Started - Setting up the tools
+To get started we need to install two main applications. Download and install:
+
+1. {url-daedalus-tn}[Daedalus Testnet] - The Cardano full-node Wallet for the Testnet.
+
+2. {url-vscode}[Microsoft Visual Studio Code] - A code development environment with text editors and integrated terminals.
+
+I'm using {url-vscode}[VSCode] as my base of operations. Hopefully that will make it easier for you to follow along with the code and commandline steps I take.
+
+[IMPORTANT]
+When downloading {url-daedalus-tn}[Daedalus Testnet] make sure to verify the signatures of the binary release you're about to install. *Before you install it!* Use either SHA256 or GPG to do this. Instructions for doing your operating system can be found below the download button. Verifying the signatures makes sure what you're about to install is the official release. This is a habbit you should get into, keeping you and your tokens secure.
+
+=== Syncing with the Testnet
+As a full-node Wallet, {url-daedalus}[Daedalus] includes a complete installation of the *Cardano Node* and supporting tools. We will be taking advantage of that and interacting with the *Cardano Node* via the commandline. Using a GUI also makes it easy to see the results of submitting your transactions. 
+
+After installing {url-daedalus-tn}[Daedalus Testnet], open it and let the Wallet sync with the Testnet. This will pull down the Testnet Blockchain locally. It may take 30 minutes or more to do this. 
+
+[WARNING]
+Completing the tutorial successfull requires a fully sync'd Testnet node, *be patient* and let it sync up.
+
+=== Creating a Powershell Terminal
+Open up {url-vscode}[VSCode] then kbd:[Ctrl + Shift + `] to open up a Powershell terminal.
+
+image::vs-terminal.png[]
+
+[NOTE] By default your terminal is set to using the default command shell. You will need to change this to Powershell. To change, select the dropdown selection box, top right of the terminal window, then select Powershell. 
+
+Next we need to setup the filesystem locations for the `cardano-cli`, the communication channel between `cardano-cli` and the running *Cardano Node*, and a magic number identifying the Testnet we're using. These settings will be used in our shell session. 
+
+In the Powershell terminal pane, copy and paste the code below to set all that up. 
+
+[source,powershell]
+----
+new-alias cardano-cli "C:\Program Files\Daedalus Testnet\cardano-cli" <1>
+
+$env:CARDANO_NODE_SOCKET_PATH='\\.\pipe\cardano-node-testnet.{0}.0' -f $((Get-WmiObject Win32_Process -Filter Name='"Daedalus Testnet.exe"').ProcessId | 
+select -first 1) <2>
+
+$env:MAGICID=1097911063 <3><4>
+----
+<1> Linking our `cardano-cli` that came with {url-daedalus-tn}[Daedalus].
+<2> Mapping the named-pipe id to interface with the Cardano node on {url-daedalus}[Daedalus].
+<3> Creating an environment variable with the magic number for the Testnet.
+<4> This network magic ID is specfic to the shelly testnet. If you want to access the mainnet you can find the network magic number {url-cardanoConfig}[here] under shelleyGenesis.
+
+[WARNING]
+If you installed {url-daedalus-tn}[Daedalus Testnet] into a different location than the default used above, you'll need to change the paths to reflect the alternative location.
+
+These commands must be re-entered everytime you start a new shell. To save some time you can set up the alias, path, and MAGICID variables in the system environment. That way you don't have to enter them into the shell everytime. The screen capture below demonstrates doing that.
+
+image::path.gif[]
+
+== Testing our setup 
+To make sure everything is working as expected, and the *Cardano Node* has synced, we need to check the tip of the Testnet blockchain. Enter the following in the Powershell:
+
+[source,powershell]
+----
+cardano-cli query tip --testnet-magic $env:MAGICID
+----
+
+You should get a positive result, indicating we are ready to go.
+
+=== Generating Address Key Pairs
+Forming transactions using the `cardano-cli` requires using addresses. An *Address* is derived from a payment key (often called a Public key). To create an *Address* we first need to generate the payment and signing keys then generate the address from the payment key.
+
+[source,powershell]
+----
+cardano-cli address key-gen --verification-key-file payment.vkey --signing-key-file payment.skey <1>
+
+cardano-cli address build --payment-verification-key-file payment.vkey --out-file payment.addr --testnet-magic $env:MAGICID <2>
+----
+<1> Generating your payment and signing keys.
+<2> Generating a wallet *Address* from the payment key
+
+[NOTE]
+It's worth noting that addresses generated using cardano-cli address key-gen
+build are unrelated to one's Daedaleus wallet.
+
+=== Testing the Generated Address
+You can test that the *Address* is valid and working by querying the blockchain for any unspent transaction outputs associated with the address. If you've followed the steps above there will be no unspent outputs since the *Address* is new.
+
+[source,powershell]
+----
+cardano-cli query utxo --address $(cat payment.addr) --testnet-magic $env:MAGICID
+----
+We'll use this command repeatedly in the tutorial to look at the wallet address. `cardano-cli query utxo ...` will list the unspent outputs for the address. Hence you can also replace the `$(cat payment.addr)` in the above command with an explicit address from the Testnet.
+
+== Building Transactions
+[IMPORTANT]
+The commands shown below use *Address*, *Transaction IDs*, and *Asset IDs* that are specific to a set of payment and signing keys and the given session. Where possible the tutorial abstracts these details out into environnment variables so they can be easily changed for your session. But you will need to change them! 
+
+=== Getting some Testnet Ada
+Before we move onto making our first transaction, I've already transfered some Ada into the generated *Address*. I did this via the {url-daedalus-tn}[Daedalus Testnet] GUI by copy and pasting the generated *Address* into the **Send to** field when making a payment. You can get your newly generated address by:
+
+[source,powershell]
+----
+cat payment.addr
+----
+
+If you have no *Testnet ADA* you can get some from the {url-faucet}[Testnet Faucet]. Either use your newly generated *Address* as receipent, or use an *Address* from your {url-daedalus-tn}[Daedalus Testnet] Wallet. Then transfer a small amount, enough to pay fees etc. to your generated *Address* as I have done.
+
+=== Network Parameters
+To form transactions you need some information about the Testnet protocol parameters.
+
+[source,powershell]
+----
+cardano-cli query protocol-parameters --testnet-magic $env:MAGICID --out-file protocol.json
+----
+
+The file `protocol.json` will be used throughout the following steps to ensure the generated transactions can only be used on the designated Testnet network. In our case the current Mary Era Testnet.
+
+=== Helper Environment variables
+
+To make it easier and more readable to use the commandline, and prevent errors, we can setup and use some helper environment variables. We'll use these environment variables when building and signing a transaction. Modifying them as and when needed.
+
+[source,powershell]
+----
+$env:LOVELACE1=10000000 <1>
+
+$env:OUTFILE="matx.raw" <2>
+
+$env:SIGNEDFILE="matx.signed" <3>
+
+$env:FEE=0 <4>
+----
+<1> The amount of Lovelace is in an unspent output.
+<2> Information of the transaction we plan to build.
+<3> Our signed file that we will create with our signing key.
+<4> How big a fee is needed to process the transaction.
+
+Some of the environment variables will have values specific to a particular step in our workflow. We'll be updating them as we proceed. For the moment these are the values I'm using. Plug in your settings.
+
+[source,powershell]
+----
+$env:OUTADDR="addr_test1qzz2l4gmm29rg0lmweh39x7lcwm6yxmha5806slfks8mxz83zg5yyt7lc4wuekkks0pefg468s8nhy2e4srz7lu2dssqqej8pg" <1>
+
+$env:TXINID="f5ed8592d6c733f8942c2bff7714be90f466148c70f17e6c55138950c025d2a7#0" <2>
+----
+<1> The address we want to send to an output to. In this scenario I've used an address from my Daedalus Wallet.
+<2> ID of the unspent output we plan to spend. It is a combination of the Transaction Id and Output Index, the `#0` at the end. It changes everytime we spend an output.
+
+=== Our first transaction
+Now that our environment is setup we can proceed with building a transaction. It takes multiple steps to do that. First we create a basic raw version of the transaction, calculate the fee, sign it, then submit the transaction. 
+
+The first step is to build the raw transaction.
+
+[source,powershell]
+----
+cardano-cli transaction build-raw `
+  --mary-era ` <1>
+  --fee $env:FEE ` <2> 
+  --tx-in $env:TXINID ` <3>
+  --tx-out "$env:OUTADDR+$($env:LOVELACE1 - $env:FEE)" ` <4>
+  --out-file $env:OUTFILE <5>
+----
+<1> For the Testnet we must specifiy the *Era* of the network we are using. In our case it is the *Mary Era*.
+<2> The Transaction fee is set to zero, we're using the `$FEE` environment variable we set up earlier to do this.
+<3> Specify the Transaction Output we want to spend. Again this is being pulled in from the `$TXIND`environment variable set up previously.
+<4> Instead of trying to manually calculate the output, we're using an inline expression instead. We're only creating a single output in this transaction.
+<5> The raw transaction information is written to a file.
+
+=== Calculate Transaction Fee
+To figure out the minimum transaction fee for our transaction, we need to calculate it. Using the raw transaction information we just generated.
+
+[source,powershell]
+----
+cardano-cli transaction calculate-min-fee `
+  --tx-body-file $env:OUTFILE ` <1>
+  --tx-in-count 1 ` <2>
+  --tx-out-count 1 ` <3>
+  --witness-count 1 ` <4>
+  --testnet-magic $env:MAGICID ` <5> 
+  --protocol-params-file protocol.json <6>
+----
+<1> The raw transaction we generated in the prior step.
+<2> We're only using a single transaction input.
+<3> Only a single Transaction Output is being generated.
+<4> This is a simple pay-to-address transaction so we only need to construct a witness with the signing key of the input.
+<5> Only required for the Testnet, this specifies what test network we are using.
+<6> Specific network protocol parameters that include details about fees.
+
+Running the above will output a fee in our terminal. Take that value and set the `$FEE` variable with it, then rebuild the raw transaction.
+
+[source,powershell]
+----
+$env:FEE=0  # <-- CHANGE ME <1>
+
+cardano-cli transaction build-raw ` <2>
+  --mary-era `
+  --fee $env:FEE `
+  --tx-in $env:TXINID `
+  --tx-out "$env:OUTADDR+$($env:LOVELACE1 - $env:FEE)" ``
+  --out-file $env:OUTFILE
+----
+<1> Make sure to change this with the fee calculated in the previous step.
+<2> This is just the same command used to generate the raw transaction. Use the up arrow to quickly repeat the command from your terminal history.
+
+=== Sign and Submit the Transaction
+
+Assuming everything worked above, you're now ready to sign the transaction using the signing key you generated in the first few steps above. That assumes the *Output* we are spending is coming from the *Address* we generated.
+
+[source,powershell]
+----
+cardano-cli transaction sign `
+  --signing-key-file payment.skey ` <1>
+  --testnet-magic $env:MAGICID `
+  --tx-body-file $env:OUTFILE `
+  --out-file $env:SIGNEDFILE <2>
+----
+<1> The payment key we generated previously.
+<2> The signed transaction is written to this file.
+
+Once the transaction is signed it can be submitted to the local *Cardano Node* and eventually confirmed and added into the blockchain.
+
+[source,powershell]
+----
+cardano-cli transaction submit `
+  --tx-file $env:SIGNEDFILE `
+  --testnet-magic $env:MAGICID
+----
+
+Congratulations on making your first transaction! The transaction will appear in {url-daedalus-tn}[Daedalus TestNet] or via the `cardano-cli` in about twenty seconds. 
+
+To query your address from the commandline:
+
+[source,powershell]
+----
+cardano-cli query utxo --address $env:OUTADDR --testnet-magic $env:MAGICID
+----
+
+You should see the new unspent output appearing in the list. Next up let's mint a token.
+
+== Minting Native Tokens with meta-data
+
+Now that we have a basic understanding of how transactions are built with `cardano-cli` let's try minting *Tokens* for an *Asset*. To do this we need to create a policy script (a type of multisignature script) that governs the minting and burning of *Tokens*. The hash of the policy script is the *Asset ID*. In addition we're going to add some transaction meta-data. Hinting at the ability for Cardano to create NFTs (more capable version of ERC721 tokens if you're familiar with Ethereum).
+
+=== Creating a policy script
+The policy script sets the rules around how a *Token* for a given *Asset* can be minted and burnt. Without it we can't do either. Keep in mind that the *Asset ID* is the hash of the policy script, hence changing anything in the script and we have a new *Asset*. We are creating a basic policy script for the moment, but a policy script is either a multi-signature script or a Plutus script (After Alonzo is released). There is lot more to scripts that I'm not going to cover at all.
+
+[source,powershell]
+----
+mkdir policy <1>
+
+cardano-cli address key-gen --verification-key-file policy/policy.vkey --signing-key-file policy/policy.skey <2>
+
+new-item policy/policy.script -type file <3>
+
+cardano-cli address key-hash --payment-verification-key-file policy/policy.vkey <4>
+----
+<1> Making a new directory named `policy`
+<2> Generating our new keys needed for the *Asset* policy script
+<3> Creating a policy script file
+<4> Hashing our policy verfication key. You'll need to copy the result for the next step.
+
+Open the new script file `code policy/policy.script` that we created above and paste the following into it and save.
+
+[source,json]
+----
+{
+    "keyHash":"19b5588ae75bc01da20d0922b8b610e4df34aa5406b1d469b21b056b", <1>
+    "type": "sig"
+}
+----
+<1> The policy verification key-hash will be different, so change it to the one you generated in the previous step.
+
+[source,powershell]
+----
+cardano-cli transaction policyid --script-file ./policy/policy.script <1>
+
+84061ca10033c03618948a25790a7d103feb2ef25c0fd388f8c28c34 <2>
+----
+<1> Generating our unique policy ID from our script file needed to mint our tokens.
+<2> The Policy ID output.
+
+=== Creating Transaction meta-data
+
+We're not going to dive into any details of transaction meta-data. I just want to demonstrate the capability more than anything else. To do this we'll just use some simple meta-data encoded as a JSON file.
+
+[source,powershell]
+----
+new-item metadata.json -type file
+----
+
+Open it in our editor `code metdata.json` and paste the following in. None of the values are important, so feel free to change them to suit.
+
+[source,Json]
+----
+{
+    "6969":{ <1>
+       "ticker": "MELON",
+       "name": "meloncoin",
+       "description": "This is a description about watermelons.",
+       "homepage": "www.melons.com",
+       "address": "addr_test1vq0ghmsf2n4vqd8sv5c0emht0mmfpc47zdt3rzql447g8vgmfcwkz" <2>
+    }
+  }
+----
+<1> You need to input a 4 digit number as a way to index the metadata. It wont show up in the transaction but it's needed in order for it to be processed in with the rest of the transaction.
+<2> Each object must be no longer than 68 `bytes` or `characters`. Otherwise the transaction will fail.
+
+
+With our metadata set up, we can now go ahead and reset some of our environment variables as well as make some new ones.
+
+[source,powershell]
+----
+$env:TXINID="6d5b3511d5c2831ed46cf23fd566a4952de9352722e47a1efb92bd4176de340d#0"
+
+$env:LOVELACE1=10000000
+
+$env:FEE=0
+
+$env:ASSET1="10 84061ca10033c03618948a25790a7d103feb2ef25c0fd388f8c28c34.melonCoin"
+
+$env:METADATA="metadata.json"
+----
+[NOTE]
+It's important to make sure you have the other helper vaiables in scope in your terminal, checkout the section *helper enviroment variables* and check in the missing varibles there berfore moving on here.
+Now let's build a new transaction with our new variables set.
+
+[source,powershell]
+----
+cardano-cli transaction build-raw `
+  --mary-era `
+  --fee $env:FEE `
+  --tx-in $env:TXINID `
+  --tx-out "$env:OUTADDR+$($env:LOVELACE1 - $env:FEE)+$env:ASSET1" ` <1>
+  --mint $env:ASSET1 ` <2>
+  --json-metadata-no-schema ` <3>
+  --metadata-json-file $env:METADATA ` <4>
+  --out-file $env:OUTFILE
+----
+<1> The new tokens are added to the *Output's* token bundle.
+<2> Forge the new tokens for the *Asset*.
+<3> The meta-data is not using any JSON schema.
+<4> The Meta-data file.
+
+With the raw transaction created we now need to calculate the fee, recreate the raw transaction, sign it, and submit it as we did with our first simple transactions. 
+
+[source,powershell]
+----
+cardano-cli transaction calculate-min-fee `
+  --tx-body-file $env:OUTFILE `
+  --tx-in-count 1 `
+  --tx-out-count 1 `
+  --witness-count 1 `
+  --testnet-magic $env:MAGICID `
+  --protocol-params-file protocol.json
+----
+
+Set the `$FEE` environment variable then rebuild the raw transaction.
+
+[source,powershell]
+----
+$env:FEE=0 <1>
+
+cardano-cli transaction build-raw `
+  --mary-era `
+  --fee $env:FEE `
+  --tx-in $env:TXINID `
+  --tx-out "$env:OUTADDR+$($env:LOVELACE1 - $env:FEE)+$env:ASSET1" `
+  --mint $env:ASSET1 `
+  --json-metadata-no-schema `
+  --metadata-json-file $env:METADATA `
+  --out-file $env:OUTFILE
+----
+<1> Change this to reflect the calculated fee.
+
+Now sign the raw transaction and submit it... then check the unspent outputs. 
+
+[source,powershell]
+----
+cardano-cli transaction sign `
+  --signing-key-file payment.skey `
+	--signing-key-file ./policy/policy.skey `
+	--script-file ./policy/policy.script `
+	--testnet-magic $env:MAGICID `
+	--tx-body-file $env:OUTFILE `
+  --out-file $env:SIGNEDFILE
+
+cardano-cli transaction submit `
+  --tx-file $env:SIGNEDFILE `
+  --testnet-magic $env:MAGICID
+
+cardano-cli query utxo --address $(cat payment.addr) --testnet-magic $env:MAGICID <1>
+----
+<1> Checking to see if it worked, do give it a few seconds.
+
+Congratulations you've succesfully minted some tokens with meta-data in the transaction! 
+
+If you want to see the meta-data, get the transaction ID and look up the transaction with the https://explorer.cardano-testnet.iohkdev.io/en[Testnet Transaction Explorer].
+
+== Burning Tokens
+
+The process of burning (deleting or disposing of tokens) is more-less identitical to minting tokens. Instead of using a positive value which is for minting, we use a negative value to burn *Tokens*. You need the policy script we generated for minting in order for this work.
+
+To get started let's reset our environment variables, the ones that count at least.
+
+[source,powershell]
+----
+$env:TXINID="3fd9dfe8d42562af8bf373c6bcff3918df0a386dc8e3c216992871d07a770f2a#0"
+
+$env:ASSET1="-10 84061ca10033c03618948a25790a7d103feb2ef25c0fd388f8c28c34.melonCoin" <1>
+
+$env:OUTADDR="addr_test1qqykkqr28fvylu3el7zht6vx6ynt9d3dw5u5l2yfk8lv60l3zg5yyt7lc4wuekkks0pefg468s8nhy2e4srz7lu2dssqt0hta6"
+
+$env:FEE=0
+----
+<1> Using a negative integer to burn ten tokens.
+
+Now it's as simple as building, signing and submiting the transaction as before.
+
+[source,powershell]
+----
+cardano-cli transaction build-raw `
+  --mary-era `
+  --fee $env:FEE `
+  --tx-in $env:TXINID `
+  --tx-out "$env:OUTADDR+$($env:LOVELACE1 - $env:FEE)" `
+  --mint $env:ASSET1 `
+  --out-file $env:OUTFILE
+----
+
+Calculate a fee then set the `$FEE` environment variable then rebuild the raw transaction again.
+
+[source,powershell]
+----
+cardano-cli transaction calculate-min-fee `
+  --tx-body-file $env:OUTFILE `
+  --tx-in-count 1 `
+  --tx-out-count 1 `
+  --witness-count 1 `
+  --testnet-magic $env:MAGICID `
+  --protocol-params-file protocol.json
+
+$env:FEE=0 <1>
+
+cardano-cli transaction build-raw `
+  --mary-era `
+  --fee $env:FEE `
+  --tx-in $env:TXINID `
+  --tx-out "$env:OUTADDR+$($env:LOVELACE1 - $env:FEE)" `
+  --mint $env:ASSET1 `
+  --out-file $env:OUTFILE
+----
+<1> Change this to reflect the calculated fee.
+
+Sign and submit the transaction.
+
+[source,powershell]
+----
+cardano-cli transaction sign `
+  --signing-key-file payment.skey `
+	--signing-key-file ./policy/policy.skey `
+	--script-file ./policy/policy.script `
+	--testnet-magic $env:MAGICID `
+	--tx-body-file $env:OUTFILE `
+  --out-file $env:SIGNEDFILE
+
+cardano-cli transaction submit `
+  --tx-file $env:SIGNEDFILE `
+  --testnet-magic $env:MAGICID
+
+cardano-cli query utxo --address $(cat payment.addr) --testnet-magic $env:MAGICID <1>
+----
+<1> Checking to see if it worked, but do give it a few seconds.
+
+You will see the ADA we specified in our `$LOVELACE` variable, minus the fee, shows up in the address we sent it to with the 10 *Tokens* removed and destroyed!
+
+Congratulations you sucessfully minted and burnt native asset tokens without the need of any smart-contracts. Now if only there was someway to pack this all into a script with a nice UI... That is coming to {url-daedalus}[Daedalus] soon.

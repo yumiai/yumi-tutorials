@@ -1,0 +1,8 @@
+= Yumi Tutorial Documents
+:author: Jack O'Brien
+:imagesdir: images
+:icons: font
+:toc:
+:experimental:
+
+This is the repository that serves as the basis for all my tutorials. Documents for my tutorials will go here.
