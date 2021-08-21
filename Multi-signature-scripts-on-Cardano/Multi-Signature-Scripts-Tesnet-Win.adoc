@@ -15,9 +15,9 @@
 :url-cardanoConfig: https://hydra.iohk.io/build/6498473/download/1/index.html
 :url-asciidocExtention1: https://marketplace.visualstudio.com/items?itemName=asciidoctor.asciidoctor-vscode
 :url-asciidoc: https://asciidoctor.org/
-:url-tutorials: https://github.com/atMetaphor/Metaphor-Tutorials
-:url-alt-version: https://github.com/atMetaphor/Metaphor-Tutorials/blob/main/Multi-signature-scripts-on-Cardano/Multi-Signature-Scripts-Tesnet-OSX.adoc
-:url-native-token-tutorial: https://github.com/atMetaphor/Metaphor-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-WIN.adoc
+:url-tutorials: https://github.com/yumiai/Yumi-Tutorials
+:url-alt-version: https://github.com/yumiai/Yumi-Tutorials/blob/main/Multi-signature-scripts-on-Cardano/Multi-Signature-Scripts-Tesnet-OSX.adoc
+:url-native-token-tutorial: https://github.com/yumiai/Yumi-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-WIN.adoc
 
 == Introduction
 This tutorial aims to demostrate how to use native multi-signature scripts on Cardano using the commandline 

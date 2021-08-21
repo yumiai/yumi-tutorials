@@ -28,12 +28,12 @@ of **Assets** in Cardano. They are equivalent to ERC20 or ERC721 tokens on Ether
 
 We'll be using the **Cardano Node** that is installed with {url-daedalus}[Daedalus], the full-node wallet for Cardano. {url-daedalus}[Daedalus] works on Microsoft Windows, Apple Mac OSX, and Linux. 
 
-This tutorial is for Apple Mac OSX, and there is a companion tutorial for https://github.com/atMetaphor/Minting-tokens-on-Cardano/blob/main/Minting-Tokens-Testnet-WIN.adoc[Microsoft Windows]. 
+This tutorial is for Apple Mac OSX, and there is a companion tutorial for https://github.com/yumiai/Yumi-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-WIN.adoc[Microsoft Windows]. 
 
 [NOTE]
 If you are using Linux the steps and command-line details should be the same as Linux shares a simliar syntax. However, the path to the *Cardano Node* and socket will be different.
 
-To make the tutorials consistent across platforms I'll be using Microsoft Visual Studio ( {url-vscode}[VSCode] ). By opening this file in VSCode, or https://github.com/atMetaphor/Metaphor-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-OSX.adoc[in your browser] you can copy/paste and change the parameters around directly within {url-vscode}[VSCode]. I'll be using VSCode in future tutorials so this is a way to introduce things. This does however mean you'll need to install {url-vscode}[VSCode]. 
+To make the tutorials consistent across platforms I'll be using Microsoft Visual Studio ( {url-vscode}[VSCode] ). By opening this file in VSCode, or https://github.com/yumiai/Yumi-Tutorials/blob/main/Minting-tokens-on-Cardano/Minting-Tokens-Testnet-OSX.adoc[in your browser] you can copy/paste and change the parameters around directly within {url-vscode}[VSCode]. I'll be using VSCode in future tutorials so this is a way to introduce things. This does however mean you'll need to install {url-vscode}[VSCode]. 
 
 If you don't want to do that, you will still be able to follow along easily enough using just a terminal window.
 
