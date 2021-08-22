@@ -5,11 +5,21 @@
   "imageSize": 100,
   "contributorsPerLine": 7,
   "contributorsSortAlphabetically": false,
-  "projectName": "c3eth-fund6",
-  "projectOwner": "C3ETH",
+  "projectName": "Yumi-Tutorials",
+  "projectOwner": "yumiai",
   "repoType": "github",
   "repoHost": "https://github.com",
   "skipCi": true,
   "contributors": [
+    {
+      "login": "PardusEidolon",
+      "name": "Jack O'Brien",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38515818?v=4",
+      "profile": "https://parduseidolon.github.io/",
+      "contributions": [
+        "content",
+        "video"
+      ]
+    }
   ]
 }
